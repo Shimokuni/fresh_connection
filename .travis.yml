@@ -12,6 +12,7 @@ rvm:
 gemfile:
   - gemfiles/rails52.gemfile
   - gemfiles/rails60.gemfile
+  - gemfiles/rails61.gemfile
 script:
   - "bin/test"
 matrix:
