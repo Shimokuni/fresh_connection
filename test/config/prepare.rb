@@ -3,7 +3,15 @@ require 'erb'
 require 'active_record'
 require 'fresh_connection'
 
-db_config = ActiveRecord::ConnectionAdapters::ConnectionSpecification::ConnectionUrlResolver.new(ENV["DATABASE_URL"]).to_hash
+connection_url_resolver_klass = 
+  if ActiveRecord.version >= Gem::Version.new("6.1")
+    require 'active_record/database_configurations'
+    ActiveRecord::DatabaseConfigurations::ConnectionUrlResolver
+  else
+    ActiveRecord::ConnectionAdapters::ConnectionSpecification::ConnectionUrlResolver
+  end
+
+db_config = connection_url_resolver_klass.new(ENV["DATABASE_URL"]).to_hash
 
 REPLICA_NAMES = %w( replica1 replica2 fake_replica )
 

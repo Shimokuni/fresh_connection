@@ -10,13 +10,19 @@ module FreshConnection
     end
 
     def spec
-      resolver.spec(@spec_name.to_sym)
+      resolve.spec(@spec_name.to_sym)
     end
 
     private
 
-    def resolver
-      ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(build_config)
+    def resolve
+      if defined?(ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver)
+        ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(build_config)
+      elsif defined?(ActiveRecord::DatabaseConfigurations) && ActiveRecord::DatabaseConfigurations.method_defined?(:resolve)
+        ActiveRecord::DatabaseConfigurations.new({}).resolve(build_config)
+      else
+        raise NotImplementedError
+      end
     end
 
     def build_config
@@ -43,7 +49,7 @@ module FreshConnection
     end
 
     def config_from_url
-      ActiveRecord::ConnectionAdapters::ConnectionSpecification::ConnectionUrlResolver.new(database_group_url).to_hash
+      connection_url_resolver_klass.new(database_group_url).to_hash
     end
 
     def base_config
@@ -52,6 +58,16 @@ module FreshConnection
 
     def database_group_url
       ENV["DATABASE_#{@spec_name.upcase}_URL"]
+    end
+
+    def connection_url_resolver_klass
+      if defined?(ActiveRecord::ConnectionAdapters::ConnectionSpecification::ConnectionUrlResolver)
+        ActiveRecord::ConnectionAdapters::ConnectionSpecification::ConnectionUrlResolver
+      elsif defined?(ActiveRecord::DatabaseConfigurations::ConnectionUrlResolver)
+        ActiveRecord::DatabaseConfigurations::ConnectionUrlResolver
+      else
+        raise NotImplementedError
+      end
     end
   end
 end
