@@ -19,13 +19,14 @@ module FreshConnection
       if defined?(ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver)
         ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(build_config)
       elsif defined?(ActiveRecord::DatabaseConfigurations) && ActiveRecord::DatabaseConfigurations.method_defined?(:resolve)
-        ActiveRecord::DatabaseConfigurations.new({}).resolve(build_config)
+        ActiveRecord::DatabaseConfigurations.new({}).resolve(build_config.to_h)
       else
         raise NotImplementedError
       end
     end
 
     def build_config
+      puts base_config.class.name
       config = base_config.with_indifferent_access
 
       s_config = replica_config(config)
@@ -53,7 +54,13 @@ module FreshConnection
     end
 
     def base_config
-      ActiveRecord::Base.connection_pool.spec.config
+      if ActiveRecord::Base.connection_pool.respond_to?(:spec)
+        ActiveRecord::Base.connection_pool.spec.config
+      elsif ActiveRecord::Base.connection_pool.respond_to?(:pool_config)
+        ActiveRecord::Base.connection_pool.pool_config.db_config.configuration_hash
+      else
+        raise NotImplementedError
+      end
     end
 
     def database_group_url
